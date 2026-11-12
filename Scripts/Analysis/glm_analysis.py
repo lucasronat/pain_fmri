@@ -44,7 +44,7 @@ def first_level_analyses(data_dir, task_label, space_label, derivatives_folder, 
         n_jobs=2,
         verbose=0,
     )
-    for i, model in enumerate(models[:2]):
+    for i, model in enumerate(models):
         model.fit(
             models_run_imgs[i],
             events=models_events[i],
@@ -107,7 +107,7 @@ def first_level_analyses(data_dir, task_label, space_label, derivatives_folder, 
             )
             
             table = get_clusters_table(
-                clean_map, stat_threshold=threshold, cluster_threshold=10
+                clean_map, stat_threshold=threshold, cluster_threshold=10, two_sided=True
             )
             table.to_csv(Path(output_dir,
                                  f"sub-{model.subject_label}",
@@ -116,7 +116,6 @@ def first_level_analyses(data_dir, task_label, space_label, derivatives_folder, 
 
     return models
         
-
 def second_level_analysis(output_dir, contrast_dict=None):
     """
     Perform second level analysis on first level models.
@@ -140,13 +139,13 @@ def second_level_analysis(output_dir, contrast_dict=None):
             Path(output_dir, f"second_level_contrast-{key}_stat-z_statmap.nii.gz")
         )
         
-        clean_map, threshold = threshold_stats_img(
-            z_map, alpha=0.001, height_control="fdr", two_sided=True
-        )
+        #clean_map, threshold = threshold_stats_img(
+        #    z_map, alpha=0.001, height_control="fdr", two_sided=True
+        #)
         
         plot_glass_brain(
-            clean_map,
-            threshold=threshold,
+            z_map,
+            threshold=2,
             title=f"{key} (FDR p<0.001)",
             plot_abs=False,
             output_file=Path(output_dir,
@@ -156,17 +155,17 @@ def second_level_analysis(output_dir, contrast_dict=None):
         )
         
         plot_stat_map(
-            clean_map,
+            z_map,
             display_mode="ortho",
-            threshold=threshold,
+            threshold=2,
             output_file=Path(output_dir,
                                  f"2ndlevelGLM_task-painexpectancy_contrast-{key}_plot_stat_map.png"),
             title=f"{key} (FDR p<0.001)",
         )
         
         html_view = view_img(
-            clean_map,
-            threshold=threshold,
+            z_map,
+            threshold=2,
             dim=0,
         )
         html_view.save_as_html(Path(output_dir,
@@ -174,7 +173,7 @@ def second_level_analysis(output_dir, contrast_dict=None):
                               )
             
         table = get_clusters_table(
-            clean_map, stat_threshold=threshold, cluster_threshold=10
+            z_map, stat_threshold=2, cluster_threshold=10, two_sided=True
         )
         table.to_csv(Path(output_dir,
                      f"2ndlevelGLM_task-painexpectancy_contrast-{key}_clusters.csv")
@@ -184,6 +183,7 @@ def second_level_analysis(output_dir, contrast_dict=None):
         report.save_as_html(
             Path(output_dir, f"second_level_contrast-{key}_report.html")
         )
+    
     return
 
 def main():
@@ -211,11 +211,11 @@ def main():
     contrast_dict = {
         "pain_high-low": "HIGH_HIGH - LOW_LOW",
         "cue_high-low": "HIGH_CUE - LOW_CUE",
-        "hypoalgesia": "LOW_MOD - MOD_MOD",
-        "hyperalgesia": "HIGH_MOD - MOD_MOD",
         "expectation": "LOW_MOD + HIGH_MOD",
         "cue": "LOW_MOD + MOD_CUE + HIGH_MOD",
         "pain": "LOW_LOW + LOW_MOD + MOD_MOD + HIGH_MOD + HIGH_HIGH",
+        #"hypoalgesia": "LOW_MOD - MOD_MOD",
+        #"hyperalgesia": "HIGH_MOD - MOD_MOD",
     }
 
     first_level_models = first_level_analyses(
